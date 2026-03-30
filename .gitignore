@@ -1,0 +1,64 @@
+# Dependencies
+node_modules
+backups/
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Production
+dist
+build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# Local env files
+.env
+.env*.local
+
+# IDEs
+.idea
+.vscode
+.claude/
+*.swp
+*.swo
+*~
+
+# TypeScript
+*.tsbuildinfo
+
+# SvelteKit
+.svelte-kit
+
+# Vite
+.vite
+
+# NestJS
+.nest
+
+dist
+
+/storage
+
+# SSL certificates (sensitive)
+certbot/
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
