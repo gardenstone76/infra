@@ -1,0 +1,312 @@
+# CampPick2 Caddyfile
+# Caddy는 자동으로 HTTPS를 처리하고 인증서를 발급/갱신합니다
+
+# 글로벌 설정 (반드시 파일 맨 처음에 위치해야 함)
+{
+    # 로그 설정
+    log {
+        output stdout
+        format console
+    }
+
+    # 자동 HTTPS는 기본적으로 활성화되어 있습니다
+    # Docker 환경에서 포트 80과 443이 열려있으면 자동으로 Let's Encrypt 인증서를 발급/갱신합니다
+    
+    # On-Demand TLS: 서브도메인 및 커스텀 도메인 인증서 발급 전에 API를 통해 검증
+    on_demand_tls {
+        ask http://openfolio-api:3000/api/users/validate-subdomain
+        interval 2m
+        burst 5
+    }
+    
+    # 커스텀 도메인 검증을 위한 추가 설정
+    # 각 도메인 블록에서 개별적으로 검증 엔드포인트 지정
+}
+
+# camppick.com → www.camppick.com 리다이렉트
+camppick.com {
+    redir https://www.camppick.com{uri} permanent
+}
+
+# www.camppick.com 메인 서버
+www.camppick.com {
+    # /campsites/:campsiteId → /camps/:campId 리다이렉트
+    redir /campsites/{path} /camps/{path} permanent
+
+    # 이미지 파일 서빙
+    handle_path /storage/* {
+        file_server {
+            root /app/storage
+            precompressed gzip br
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+        header Access-Control-Allow-Origin "*"
+    }
+
+    # API 프록시
+    handle /api/* {
+        reverse_proxy api:3030 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Health check
+    handle /health {
+        respond "healthy" 200
+    }
+
+    # Frontend 프록시
+    handle {
+        reverse_proxy frontend:3031 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+    }
+
+    # Gzip 압축
+    encode gzip
+}
+
+# app.camppick.com — Flutter 앱 전용 API
+app.camppick.com {
+    # 이미지 파일 서빙 (web-api와 동일 storage 공유)
+    handle_path /storage/* {
+        file_server {
+            root /app/storage
+            precompressed gzip br
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+        header Access-Control-Allow-Origin "*"
+    }
+
+    # App API 프록시
+    handle /api/* {
+        reverse_proxy app-api:3032 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Health check
+    handle /health {
+        respond "healthy" 200
+    }
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+    }
+
+    encode gzip
+}
+
+# openfolio.kr → www.openfolio.kr 리다이렉트
+openfolio.kr {
+    redir https://www.openfolio.kr{uri} permanent
+}
+
+# www.openfolio.kr 서버 (정확한 매칭이므로 와일드카드보다 우선)
+www.openfolio.kr {
+    # 이미지 파일 서빙
+    handle_path /uploads/* {
+        file_server {
+            root /app/uploads
+            precompressed gzip br
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+        header Access-Control-Allow-Origin "*"
+    }
+
+    # API 프록시
+    handle /api/* {
+        reverse_proxy openfolio-api:3000 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Health check
+    handle /health {
+        respond "healthy" 200
+    }
+
+    # Frontend 프록시
+    handle {
+        reverse_proxy openfolio-frontend:3001 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+    }
+
+    # Gzip 압축
+    encode gzip
+}
+
+# *.openfolio.kr 서브도메인 서버 (nickname.openfolio.kr 등)
+# www.openfolio.kr는 위의 정확한 매칭 블록에서 처리되므로 여기서는 제외됨
+*.openfolio.kr {
+    # On-Demand TLS 활성화 (글로벌 설정의 ask 엔드포인트 사용)
+    tls {
+        on_demand
+    }
+
+    # 이미지 파일 서빙
+    handle_path /uploads/* {
+        file_server {
+            root /app/uploads
+            precompressed gzip br
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+        header Access-Control-Allow-Origin "*"
+    }
+
+    # API 프록시
+    handle /api/* {
+        reverse_proxy openfolio-api:3000 {
+            header_up X-Real-IP {remote_host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Health check
+    handle /health {
+        respond "healthy" 200
+    }
+
+    # Frontend 프록시 (서브도메인 정보를 Host 헤더로 전달)
+    handle {
+        reverse_proxy openfolio-frontend:3001 {
+            header_up X-Real-IP {remote_host}
+            header_up Host {host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+    }
+
+    # Gzip 압축
+    encode gzip
+}
+
+# 커스텀 도메인 처리 (openfolio.kr과 camppick.com 메인 도메인이 아닌 모든 도메인)
+# 예: gardenstone.me, eqfoto.com, photo.camppick.com 등
+# 주의: 이 블록은 위에 정의된 특정 도메인들보다 낮은 우선순위를 가집니다
+https:// {
+    # On-Demand TLS 활성화 (커스텀 도메인 검증)
+    tls {
+        on_demand
+    }
+
+    # openfolio.kr 관련 도메인과 www.camppick.com은 이미 위에서 처리됨
+    # 이 블록은 그 외의 모든 커스텀 도메인을 처리 (*.camppick.com도 커스텀 도메인으로 사용 가능)
+    @custom_domain {
+        not host *.openfolio.kr
+        not host openfolio.kr
+        not host www.openfolio.kr
+        not host www.camppick.com
+        not host camppick.com
+    }
+
+    # 이미지 파일 서빙
+    handle_path /uploads/* {
+        file_server {
+            root /app/uploads
+            precompressed gzip br
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+        header Access-Control-Allow-Origin "*"
+    }
+
+    # API 프록시
+    handle /api/* {
+        reverse_proxy openfolio-api:3000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Host {host}
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Health check
+    handle /health {
+        respond "healthy" 200
+    }
+
+    # Frontend 프록시 (커스텀 도메인 정보를 Host 헤더로 전달)
+    handle @custom_domain {
+        reverse_proxy openfolio-frontend:3001 {
+            header_up X-Real-IP {remote_host}
+            header_up Host {host}
+            header_up X-Forwarded-Host {host}
+            header_up X-Custom-Domain "true"
+            transport http {
+                dial_timeout 60s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # 기본 처리 (커스텀 도메인이 아닌 경우 404)
+    handle {
+        respond "Not Found" 404
+    }
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+    }
+
+    # Gzip 압축
+    encode gzip
+}

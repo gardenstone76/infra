@@ -1,0 +1,59 @@
+services:
+  mysql:
+    image: mariadb:10.11
+    container_name: shared-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-changeme}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - /var/lib/docker-data/shared/mysql:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --ft-min-word-len=2 --innodb-ft-min-token-size=2
+    restart: always
+    networks:
+      shared-network:
+        aliases:
+          - mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p$${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+      platforms:
+        - linux/amd64
+    container_name: shared-caddy
+    platform: linux/amd64
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 (QUIC) 지원
+    volumes:
+      - /var/lib/docker-data/camppick2/storage:/app/storage:ro
+      - /var/lib/docker-data/openfolio/uploads:/app/uploads:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: always
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  shared-network:
+    name: shared-network
+    driver: bridge

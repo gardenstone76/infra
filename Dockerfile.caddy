@@ -1,0 +1,12 @@
+# Caddy Dockerfile - 공유 인프라
+FROM caddy:2.7-alpine
+
+# Caddyfile 복사
+COPY Caddyfile /etc/caddy/Caddyfile
+
+# 헬스체크를 위한 curl 설치 (선택사항)
+RUN apk add --no-cache curl
+
+# 컨테이너 시작
+EXPOSE 80 443
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]
