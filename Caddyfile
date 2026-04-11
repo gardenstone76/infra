@@ -61,7 +61,7 @@ www.camppick.com {
 
     # Frontend 프록시
     handle {
-        reverse_proxy frontend:3031 {
+        reverse_proxy web:3031 {
             header_up X-Real-IP {remote_host}
             transport http {
                 dial_timeout 60s
