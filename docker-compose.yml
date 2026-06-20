@@ -33,8 +33,9 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"  # HTTP/3 (QUIC) 지원
+    environment:
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
     volumes:
-      - /var/lib/docker-data/camppick2/storage:/app/storage:ro
       - /var/lib/docker-data/openfolio/uploads:/app/uploads:ro
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

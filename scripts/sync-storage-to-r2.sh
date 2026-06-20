@@ -93,6 +93,7 @@ RCLONE_ARGS=(
     --progress
     --transfers "$TRANSFERS"
     --checkers "$CHECKERS"
+    --fast-list
     --stats-one-line
 )
 

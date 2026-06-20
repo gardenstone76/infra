@@ -33,11 +33,10 @@ www.camppick.com {
     # /campsites/:campsiteId → /camps/:campId 리다이렉트
     redir /campsites/{path} /camps/{path} permanent
 
-    # 이미지 파일 서빙
+    # R2 이미지 프록시: /storage/image/... → R2 버킷의 image/...
     handle_path /storage/* {
-        file_server {
-            root /app/storage
-            precompressed gzip br
+        reverse_proxy {$R2_PUBLIC_URL} {
+            header_up Host {upstream_hostport}
         }
         header Cache-Control "public, max-age=31536000, immutable"
         header Access-Control-Allow-Origin "*"
@@ -84,11 +83,10 @@ www.camppick.com {
 
 # app.camppick.com — Flutter 앱 전용 API
 app.camppick.com {
-    # 이미지 파일 서빙 (web-api와 동일 storage 공유)
+    # R2 이미지 프록시: /storage/image/... → R2 버킷의 image/...
     handle_path /storage/* {
-        file_server {
-            root /app/storage
-            precompressed gzip br
+        reverse_proxy {$R2_PUBLIC_URL} {
+            header_up Host {upstream_hostport}
         }
         header Cache-Control "public, max-age=31536000, immutable"
         header Access-Control-Allow-Origin "*"
