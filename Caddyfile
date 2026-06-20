@@ -35,7 +35,7 @@ www.camppick.com {
 
     # R2 이미지 프록시: /storage/image/... → R2 버킷의 image/...
     handle_path /storage/* {
-        reverse_proxy {$R2_PUBLIC_URL} {
+        reverse_proxy {$CAMPPICK_R2_PUBLIC_URL} {
             header_up Host {upstream_hostport}
         }
         header Cache-Control "public, max-age=31536000, immutable"
@@ -85,7 +85,7 @@ www.camppick.com {
 app.camppick.com {
     # R2 이미지 프록시: /storage/image/... → R2 버킷의 image/...
     handle_path /storage/* {
-        reverse_proxy {$R2_PUBLIC_URL} {
+        reverse_proxy {$CAMPPICK_R2_PUBLIC_URL} {
             header_up Host {upstream_hostport}
         }
         header Cache-Control "public, max-age=31536000, immutable"
@@ -125,11 +125,10 @@ openfolio.kr {
 
 # www.openfolio.kr 서버 (정확한 매칭이므로 와일드카드보다 우선)
 www.openfolio.kr {
-    # 이미지 파일 서빙
+    # R2 이미지 프록시: /uploads/images/... → R2 버킷의 images/...
     handle_path /uploads/* {
-        file_server {
-            root /app/uploads
-            precompressed gzip br
+        reverse_proxy {$OPENFOLIO_R2_PUBLIC_URL} {
+            header_up Host {upstream_hostport}
         }
         header Cache-Control "public, max-age=31536000, immutable"
         header Access-Control-Allow-Origin "*"
@@ -182,11 +181,10 @@ www.openfolio.kr {
         on_demand
     }
 
-    # 이미지 파일 서빙
+    # R2 이미지 프록시: /uploads/images/... → R2 버킷의 images/...
     handle_path /uploads/* {
-        file_server {
-            root /app/uploads
-            precompressed gzip br
+        reverse_proxy {$OPENFOLIO_R2_PUBLIC_URL} {
+            header_up Host {upstream_hostport}
         }
         header Cache-Control "public, max-age=31536000, immutable"
         header Access-Control-Allow-Origin "*"
@@ -251,11 +249,10 @@ https:// {
         not host camppick.com
     }
 
-    # 이미지 파일 서빙
+    # R2 이미지 프록시: /uploads/images/... → R2 버킷의 images/...
     handle_path /uploads/* {
-        file_server {
-            root /app/uploads
-            precompressed gzip br
+        reverse_proxy {$OPENFOLIO_R2_PUBLIC_URL} {
+            header_up Host {upstream_hostport}
         }
         header Cache-Control "public, max-age=31536000, immutable"
         header Access-Control-Allow-Origin "*"
